@@ -13,7 +13,7 @@ In this part, we implemented a basic ray tracing program with  C++ on CPU, then 
 ## part 2. BVH Accelerate Struct
 In the last part,we had to go through all the triangles in the scene to get the path's hit result.For accelerate this processing,we implemented the BVH acceletrating structure in this part.Further more,we use SAH algorithm to optimize this structure to make sure the program can work in the scene which has tons of triangles.<div align="enter">
  <div align="center"><img src="ReadMe.asset/normalBVH.PNG" width="256"><img src="ReadMe.asset/SAHBVH.PNG" width="256"><img src="ReadMe.asset/三角形求交效果.PNG" width="256"></div>
-&emsp;&emsp;&emsp;&emsp;AABB-Box of BVH with out SAH(left) &emsp;&emsp;&emsp;&ensp;    AABB-Box of BVH with SAH(right)&emsp; &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;  Hit Result
+&emsp;&emsp;&emsp;AABB-Box of BVH with out SAH(left) &emsp;&emsp;&emsp;&ensp;    AABB-Box of BVH with SAH(right)&emsp; &emsp;&emsp;&emsp;&emsp;&emsp; Hit Result
  
 ## part 3. OpenGL ray tracing
 
