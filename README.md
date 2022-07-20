@@ -1,41 +1,76 @@
-# 路径追踪学习
-## 前言
- 在看过闫老师的games101课程之后,对图形学的基础概念有了基本的了解,但是对其中一些算法还是停留在理论的层面,代码上的具体实现还是不会,作业做得也不是很好,因此针对部分知识点又另外寻找了一些项目学习一遍,以求更深的理解。
-    光线追踪部分选择了@AKGWSB大佬的路径追踪离线渲染器进行学习,收获颇丰,在此表示感谢,并且将自己的一些思考与总结记录在此。
-## 第一部分 蒙特卡洛路径追踪及其C++实现
-  在这一部分,我们通过glm库和openmp库,实现了一个极简单场景的路径追踪,实现了对三角形以及球体两种图元的渲染,通过颜色,反射率,折射率等几种不同的材质属性,实现了软阴影、焦散光斑、毛玻璃材质、glossy等不同的效果。由于场景简单,图元数量也较少,我们使用了极其粗暴的方法来对光线和图元求交,即每次计算光线交点,都遍历场景中所有图元,进行求交,取最近距离的结果为最终结果,这种方法较为低效,难以渲染复杂场景,不过实现较为简单,很适合深入了解path_tracing的工作原理。
-  原始教程解释得非常详细了,链接如下https://blog.csdn.net/weixin_44176696/article/details/113418991?spm=1001.2014.3001.5506
-  这里主要针对原项目中一个小的地方提出自己的见解。
-  就是在对球体求交的算法中,原教程对于两个交点的求法如下:
-  首先说明,使用原教程的方法从渲染结果来看是没有问题的,但是从逻辑上来说存在一定漏洞
-  
-  ![image](https://user-images.githubusercontent.com/89560356/175804042-ec7b87ce-734b-4e43-af73-610017db3b40.png)
-  
-  从文中的举例来说,分为了光线起始点在球体之外和球体之内两种情况,按照文中的方法,我们可知当t为t1时向量就为s->P,当t为t2时,向量就为s->Q,前者根据取小原理,应当选取P点作为交点,而后者根据射线的有向性,选择Q点作为交点。但是,实际复现的过程中,我发现作者忽略了第三种情况,当射线的起始点落在HQ之间时,这种情况往往出现于在第一次射线和球体求交的过程中,由于浮点数精度的问题,求得的交点实际上在球体内部,在这样的交点创建光线进行下一次弹射时,交点的计算就出现了问题
+# Path_tracer
+Path_tracer is a Path_tracing Off-line Renderer based on Disney principle's PBR material and some of basic noise reduction methods.
+Which is implemented by OpenGL and C++.
+# OverView
 
-![e3da5f488da0eb9df1ede8d11d512d5](https://user-images.githubusercontent.com/89560356/175804591-039ddbb5-30b3-4625-affa-dfb4bc27440b.jpg)
+In this object , our workflow is simple scene & simple material --> complex scene & simple material --> complex scene & complex material(low quality) --> complex scene & complex material (high quality).
 
-此时按照作者的方法计算得出的t1应当为-|SQ|,而t2应当为|PS|,若t1<0,则计算交点的t应当使用t2,则交点为S + t2 * d,结果为球体外很远一点,因为要知道实际情况下SQ距离往往极小,这样就导致了较大的误差,实际情况应当在求SH是,应当求得|OS|在射线上的真实投影值,这个值根据s的位置,可正可负,由此在上图中的特例中t1的值为-|SH|-|PH|,而t2的值为-|SH|+|PH|,得到t1,t2对应的交点分别为P点和Q点,符合正常逻辑。当然在最后交点的选择上也不能简单凭借t1的正负,而要分为同号正(取小),同号负(无交),异号(取正)的方式计算真正的交点。
-### 开发流程梳理(正常来说我应该看着这个梳理就能写出整个project)
+## part 1. basic ray tracing
 
-1.确定输出尺寸
-2.确定摄像机位置和朝向
-3.利用svpng.inc实现图像保存,整体逻辑就是建立一个三倍图像大小的内存空间去保存图像的RGB值(注意这里的指针自迭代,以及伽马校正的实现)。
-4.主函数部分,类似于图像保存代码,这里也要创建一块内存,保存计算结果,注意指针的迭代,尤其是当后期一个像素多次光线采样的时候,每次采样都需要重置指针的位置到开头,在循环当中计算每个像素对应的投影空间的坐标(注意y值得取反),其次得到第一次投射的光线在投影空间的起始点坐标和方向(**注意求取方向的时候记得标准化**),其他没了。
-5.定义光线类Ray,成员很简单,就一个起始点坐标,一个方向坐标。
-6.定义图形类,shape,这是一个只用作继承的父类,唯一的成员就是一个虚函数intersect();
-7.定义材质类,Material,材质有颜色,法向量,反射率,反射模糊率,折射率,折射角,折射模糊率,以及是否发光
-8.定义返回结果类Hitresult,属性有:是否击中,击中面的材质,击中面的法向量,交点与光线起点的距离(根据距离的比较就可以实现遮挡效果),击中点坐标。
-9.继承图形类定义三角形,属性有三点坐标,以及material,法向量可以用两边叉乘进行计算(逆时针计算为正确)。**三角形求交算法**(首先判断是否和三角形平面平行,若平行,则没交,否则求交点距离,若该距离为负,则说明射线方向指向远离三角形平面的方向,判断为没相交。否则相交之后,由t得到交点坐标,再次使用叉乘逆时针计算这个交点是否在三角形内,若是,则设置返回结果中的交点坐标,法向量,材质,距离,是否相交。
-10.设计shoot函数,shoot控制着每条光线的传播过程,一般不单独使用,而是用在pathtracing中,函数中创建两个射击结果。对输入的光线遍历图元数组,求得对于每一个图元的相交情况,更新最终结果,取距离最短的那个(那么自然我们应该先将需要维护的最终结果的那个Hitresult的默认距离设置为无限大。
-11.随机数的生成(应当记住)
-12.单位球随机向量的生成,首先前面生成的随机数的范围都是(0,1),我们想要四面八方首先至少得让每个向量分量的分布范围是(-1,1)才好,范围约束好之后,还要保证最终向量的不能超出半径1,不然就不是单位向量了,还得标准化,就很麻烦(再次强调,方向向量一定要单位化,不管你用什么方法)。更进一步来说,我们针对一个法向量生成半球采样方向的方法也就是用这个法向量+随机向量再标准化。
-13.路径追踪算法函数(完整版):递归函数的通用结构,先看看结束条件是否满足,这里看递归层数是否最大,最大则直接返回0向量(因为如果追踪到了光线直接就返回了,不会到这个结束判断当中),否则,我们对当前光线进行shoot,如果得到的结果是光源,则直接返回,如果不是光源, 我们要有一定概率不再弹射下一次,如果继续弹射我们根据概率的大小来确定下一次的光线是反射折射还是漫反射,如果是反射,则计算反射向量,再看情况进行干扰插值,对新向量进行递归追踪。如果是折射,则计算折射向量,再看情况进行干扰插值,对新向量进行递归追踪。如果是漫反射则需要将当前材质本身的材质颜色和光源颜色进行融合,注意因为追踪的方向不一定正对这个反射平面,以此还要考虑一个平面的方向问题。
-14.继承图形类定义球体,球体类的属性由材质,圆心和半径构成。**球体求交算法**(首先是否相交的决定因素应当是射线到圆心的距离是否大于半径,若大于则不相交,这里的距离我们使用勾股定理进行求解,首先得到起始点到圆心的距离,再得到起始点到圆心的连线在射线上的投影,注意这个投影有正有负,这样用勾股定理就相当于斜边的平方减去一个直角边的平方,即可得到射线到球心的距离。在排除不相交的情况之后,我们来判断应该返回哪个交点,具体看上面那个"正确的判断原则",在得到正确的交点之后,判断是不是距离过小,排除浮点数精度造成的影响,之后就可以返回Hitresult了,设置是否相交,交点,距离,材质,法向量等属性)
+In this part, we implemented a basic ray tracing program with  C++ on CPU, then save the final result as a png image.
+<div align="center"><img src="ReadMe.asset/pathTracing.gif" width="320"><img src="ReadMe.asset/sample_4096.png" width="320"></div>
 
-在这之后你就可以自己传入各种三角形和球体,并且通过定义他们的材质,来实现不同的效果,在实践中,可以实现磨砂石膏球,全反射球,glossy金属球,包括类似于台球的那种光亮球,玻璃球,磨砂玻璃球等,下面放上效果图一张(SPP为4096)
+## part 2. BVH Accelerate Struct
+In the last part,we had to go through all the triangles in the scene to get the path's hit result.For accelerate this processing,we implemented the BVH acceletrating structure in this part.Further more,we use SAH algorithm to optimize this structure to make sure the program can work in the scene which has tons of triangles.<div align="enter">
+ <div align="center"><img src="ReadMe.asset/normalBVH.PNG" width="320"><img src="ReadMe.asset/SAHBVH.PNG" width="320"><img src="ReadMe.asset/三角形求交效果.PNG" width="320"></div>
+&emsp;&emsp;&emsp;&emsp;AABB-Box of BVH with out SAH(left) &emsp;&emsp;&emsp;&ensp;    AABB-Box of BVH with SAH(right)&emsp; &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;  Hit Result
+ 
+## part 3. OpenGL ray tracing
 
-![6e7a1e5036b17fed9953f66a3e18f61](https://user-images.githubusercontent.com/89560356/175805203-7e4ead2e-b7bd-474a-af90-fa5c9bf4be33.png)
+Using OpenGL's fragment shader to run accelerate program. Transfer BVH and triangles in texture buffer, then send to shader. Finally tracing each pixel progressively, then display the dynamic tracing process in screen.
+
+<div align="center"><img src="ReadMe.asset/part3.gif" width="320"></div>
+
+## part 4. disney principle's BRDF
+
+Learning micro facet theory, using Disney principle's BRDF to rendering various of physical material. <div align="enter">
+For the low roughness surface, the hemispherical uniform sampling efficiency is very low, so there are many noise points in the image.
+
+<div align="center"><img src="ReadMe.asset/part4.PNG" width="320"></div>
+
+## part 5. Importance Sampling & Low Discrepancy Sequence
+
+Methods to denoise, accelerate fitting progress.
+
+Low Discrepancy Sequence (Sobol) :
+
+<div align="center"><img src="ReadMe.asset/sobol.gif" width="320"> <img src="ReadMe.asset/fake_rand().gif" width="320"></div>
+
+Importance Sampling, diffuse (left) and BRDF (right) :
+
+<div align="center"><img src="ReadMe.asset/800c3511ae8043c08e3e43cb1e7ef8f6.png" width="512"></div>
+
+Importance Sampling for HDR envmap :
+
+<div align="center"><img src="ReadMe.asset/image-20211023172136160.png" width="512"></div>
+
+Multi Importance Sampling with Heuristic power :
+
+<div align="center"><img src="ReadMe.asset/29a21706e2664d57a2ca9a6089da632a.png" width="320"></div>
+
+
+## part 6. Display
+ <div align="center"><img src="ReadMe.asset/捕获 (2).PNG" width="300"><img src="ReadMe.asset/捕获2 (2).PNG" width="300"><img src="ReadMe.asset/捕获3 (2).PNG" width="300"></div><div align="enter">
+  <div align="center"><img src="ReadMe.asset/捕获4 (2).PNG" width="300"><img src="ReadMe.asset/捕获5 (2).PNG" width="300"><img src="ReadMe.asset/捕获6 (2).PNG" width="300"></div><div align="enter">
+
+# Requirement
+
+environment:
+
+* Windows 10 x64
+* visual studio 2019
+* vcpkg
+* cmake
+
+
+C++  lib:
+
+* GLUT (freeglut) >= 3.0.0
+* GLEW >= 2.1.0
+* GLM  >= 0.9.9.5
 
 
 
+Third part cpp lib:
+
+* hdrloader
