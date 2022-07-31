@@ -344,7 +344,7 @@ float rand_sync() {
     return float(wang_hash(seed_sync)) / 4294967296.0;
 }
 
-const int V[]= const int [8*32](
+const uint V[]= const uint [8*32](
   2147483648, 1073741824, 536870912, 268435456, 134217728, 67108864, 33554432, 16777216, 8388608, 4194304, 2097152, 1048576, 524288, 262144, 131072, 65536, 32768, 16384, 8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1, 2147483648, 3221225472, 2684354560, 4026531840, 2281701376, 3422552064, 2852126720, 4278190080, 2155872256, 3233808384, 2694840320, 4042260480, 2290614272, 3435921408, 2863267840, 4294901760, 2147516416, 3221274624, 2684395520, 4026593280, 2281736192, 3422604288, 2852170240, 4278255360, 2155905152, 3233857728, 2694881440, 4042322160, 2290649224, 3435973836, 2863311530, 4294967295, 2147483648, 3221225472, 1610612736, 2415919104, 3892314112, 1543503872, 2382364672, 3305111552, 1753219072, 2629828608, 3999268864, 1435500544, 2154299392, 3231449088, 1626210304, 2421489664, 3900735488, 1556135936, 2388680704, 3314585600, 1751705600, 2627492864, 4008611328, 1431684352, 2147543168, 3221249216, 1610649184, 2415969680, 3892340840, 1543543964, 2382425838, 3305133397, 2147483648, 3221225472, 536870912, 1342177280, 4160749568, 1946157056, 2717908992, 2466250752, 3632267264, 624951296, 1507852288, 3872391168, 2013790208, 3020685312, 2181169152, 3271884800, 546275328, 1363623936, 4226424832, 1977167872, 2693105664, 2437829632, 3689389568, 635137280, 1484783744, 3846176960, 2044723232, 3067084880, 2148008184, 3222012020, 537002146, 1342505107, 2147483648, 1073741824, 536870912, 2952790016, 4160749568, 3690987520, 2046820352, 2634022912, 1518338048, 801112064, 2707423232, 4038066176, 3666345984, 1875116032, 2170683392, 1085997056, 579305472, 3016343552, 4217741312, 3719483392, 2013407232, 2617981952, 1510979072, 755882752, 2726789248, 4090085440, 3680870432, 1840435376, 2147625208, 1074478300, 537900666, 2953698205, 2147483648, 1073741824, 1610612736, 805306368, 2818572288, 335544320, 2113929216, 3472883712, 2290089984, 3829399552, 3059744768, 1127219200, 3089629184, 4199809024, 3567124480, 1891565568, 394297344, 3988799488, 920674304, 4193267712, 2950604800, 3977188352, 3250028032, 129093376, 2231568512, 2963678272, 4281226848, 432124720, 803643432, 1633613396, 2672665246, 3170194367, 2147483648, 3221225472, 2684354560, 3489660928, 1476395008, 2483027968, 1040187392, 3808428032, 3196059648, 599785472, 505413632, 4077912064, 1182269440, 1736704000, 2017853440, 2221342720, 3329785856, 2810494976, 3628507136, 1416089600, 2658719744, 864310272, 3863387648, 3076993792, 553150080, 272922560, 4167467040, 1148698640, 1719673080, 2009075780, 2149644390, 3222291575, 2147483648, 1073741824, 2684354560, 1342177280, 2281701376, 1946157056, 436207616, 2566914048, 2625634304, 3208642560, 2720006144, 2098200576, 111673344, 2354315264, 3464626176, 4027383808, 2886631424, 3770826752, 1691164672, 3357462528, 1993345024, 3752330240, 873073152, 2870150400, 1700563072, 87021376, 1097028000, 1222351248, 1560027592, 2977959924, 23268898, 437609937);
 
 int grayCode(int i)
@@ -354,7 +354,7 @@ int grayCode(int i)
 // 生成第 d 维度的第 i 个 sobol 数
 float sobol(int d,int i)
 {
-    int result = 0;
+    uint result = 0u;
     int offset = 32*d;
     for(int j = 0;i!=0;i>>=1,j++)
     {
@@ -529,7 +529,7 @@ vec3 SampleHemisphere() {
     return vec3(r * cos(phi), r * sin(phi), z);
 }
 
-//余弦甲醛的法向半球采样
+//余弦加权的法向半球采样
 vec3 SampleCosineHemisphere(float xi_1,float xi_2,vec3 N)
 {
     float r = sqrt(xi_1);
@@ -871,7 +871,7 @@ vec3 pathTracingImportanceSampling(HitResult hit ,int maxBounce)
         hdrTestRay.direction = SampleHdr(rand(),rand());
         if(dot(N,hdrTestRay.direction)>0.0)
         {
-            //如果采样方向背向点p则放弃测试,以为NdotL<0
+            //如果采样方向背向点p则放弃测试,因为NdotL<0
             HitResult hdrHit = hitBVH(hdrTestRay);
 
             //天空光仅在没有遮挡的情况下积累亮度
@@ -887,7 +887,6 @@ vec3 pathTracingImportanceSampling(HitResult hit ,int maxBounce)
                 //多重重要性采样
                 float mis_weight = misMixWeight(pdf_light,pdf_brdf);
                 Lo += mis_weight*history * color * f_r * dot(N, L) / pdf_light; // 累计亮度
-                
             }
         }
         vec2 sobol = sobolVec2(frameCounter+1,bounce);
@@ -935,33 +934,60 @@ vec3 pathTracingImportanceSampling(HitResult hit ,int maxBounce)
 
 void main() {
 
-    // 投射光线
-    Ray ray;
-    
-    ray.startPoint = eye;
-    vec2 AA = vec2((rand()-0.5)/float(width), (rand()-0.5)/float(height));
-    vec4 dir = cameraRotate * vec4(pix.xy+AA, -1.5, 0.0);
-    ray.direction = normalize(dir.xyz);
 
-    // primary hit
-    HitResult firstHit = hitBVH(ray);
-    vec3 color;
+
     
-    if(!firstHit.isHit) {
-        //color = vec3(0.2,0.3,0.2);
-        color = hdrColor(ray.direction);
-    } else {
-        vec3 Le = firstHit.material.emissive;
-        //vec3 Li = pathTracing(firstHit, 4);
-        vec3 Li = pathTracingImportanceSampling(firstHit,4);
-        color = Le + Li;
-    }  
-    
-    // 和上一帧混合
-    vec3 lastColor = texture2D(lastFrame, pix.xy*0.5+0.5).rgb;//一直是黑的
-    color = mix(lastColor, color, 1.0/(frameCounter+1));//frameCounter一直是0
-    //color = vec3(frameCounter*0.001,frameCounter*0.001,frameCounter*0.001+2);
-    
+//    // 投射光线
+//    Ray ray;
+//    
+//    ray.startPoint = eye;
+//    vec2 AA = vec2((rand()-0.5)/float(width), (rand()-0.5)/float(height));
+//    vec4 dir = cameraRotate * vec4(pix.xy+AA, -1.5, 0.0);
+//    ray.direction = normalize(dir.xyz);
+//
+//    // primary hit
+//    HitResult firstHit = hitBVH(ray);
+//    vec3 color;
+//    
+//    if(!firstHit.isHit) {
+//        //color = vec3(0.2,0.3,0.2);
+//        color = hdrColor(ray.direction);
+//    } else {
+//        vec3 Le = firstHit.material.emissive;
+//        //vec3 Li = pathTracing(firstHit, 4);
+//        vec3 Li = pathTracingImportanceSampling(firstHit,4);
+//        color = Le + Li;
+//    }  
+//    
+//    // 和上一帧混合
+//    vec3 lastColor = texture2D(lastFrame, pix.xy*0.5+0.5).rgb;//一直是黑的
+//    color = mix(lastColor, color, 1.0/(frameCounter+1));//frameCounter一直是0
+//    //color = vec3(frameCounter*0.001,frameCounter*0.001,frameCounter*0.001+2);
+
+    vec3 color = vec3(0);
+    for(int i=0; i<50; i++) {
+        //重要性采样可视化
+        vec2 uv;
+        uv=sobolVec2(frameCounter+1,1);
+        uv.x = (uv.x-0.5)*2;
+        uv.y = (uv.y-0.5)*2;
+        if(distance(pix.xy, uv)<0.006) color.rgb = vec3(1, 0, 0);
+        vec3 lastColor = texture2D(lastFrame, pix.xy*0.5+0.5).rgb;//一直是黑的
+        color = max(lastColor,color);
+        
+        /*//伪随机数采样可视化
+        if(i==4999)
+        {
+            uv = vec2(rand(),rand());
+            uv.x = (uv.x-0.5)*2;
+            uv.y = (uv.y-0.5)*2;
+            if(distance(pix.xy, uv)<0.01) color.rgb = vec3(1, 0, 0);
+        vec3 lastColor = texture2D(lastFrame, pix.xy*0.5+0.5).rgb;//一直是黑的
+        color = max(lastColor,color);
+        }*/
+        
+        
+    }
     // 输出
     gl_FragData[0] = vec4(color, 1.0);
 }
