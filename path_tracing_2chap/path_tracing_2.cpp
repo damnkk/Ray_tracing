@@ -480,7 +480,7 @@ float hitAABB(Ray r, vec3 AA, vec3 BB)
 	vec3 tmax = max(in, out);
 	vec3 tmin = min(in, out);
 	float t1 = min(tmax.x, min(tmax.y, tmax.z));
-	float t0 = min(tmin.x, max(tmin.y, tmin.z));
+	float t0 = max(tmin.x, max(tmin.y, tmin.z));
 
 	return (t1 >= t0) ? ((t0 > 0.0) ? (t0) : (t1)) : (-1);//t1<t0,直接就算没交到。在出射大于入射的情况下,如果入射为负,则说明光线起点在盒子内,则我们返回真正的交点距离为出射点的
 	//t值,如果入射出射的t值都大于0,那么说明光线起点在包围盒之外,那么自然是两者取小,
